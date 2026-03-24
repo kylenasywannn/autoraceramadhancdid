@@ -1,6 +1,6 @@
 -- =========================================================================
 -- MODERN CDID SUMATERA BYPASS (STABLE UI V4.6.1 - PRO BUILD)
--- Anti‑Cheat Safe | Tween Teleport + Humanised Movement
+-- Logika Fisika: V4.2 | UI: Fluent | Auto Join Lobby (Fixed)
 -- =========================================================================
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
@@ -17,96 +17,9 @@ _G.IsTweening = false
 _G.AutoClean = true
 _G.AutoCarID = "2021Avanza15CVT"
 _G.AutoCarName = "2021 Tokoma Avanza 1.5 CVT"
-_G.NoclipActive = false
 
 -- ==========================================
--- ANTI AFK (OTOMATIS AKTIF)
--- ==========================================
-local function antiAFK()
-    local player = PL
-    if not player then return end
-    pcall(function()
-        if getconnections then
-            for _, conn in ipairs(getconnections(player.Idled)) do
-                if conn.Disable then conn:Disable()
-                elseif conn.Disconnect then conn:Disconnect() end
-            end
-        else
-            local vu = game:GetService("VirtualUser")
-            player.Idled:Connect(function()
-                vu:CaptureController()
-                vu:ClickButton2(Vector2.new())
-            end)
-        end
-    end)
-end
-antiAFK()
-
--- ==========================================
--- NOCLIP & GODMODE
--- ==========================================
-local originalCollisions = {}
-local playerHumanoid = nil
-local originalGodMode = false
-local godmodeConnection = nil
-
-local function enableNoclip(car)
-    if _G.NoclipActive or not car then return end
-    originalCollisions = {}
-    for _, part in ipairs(car:GetDescendants()) do
-        if part:IsA("BasePart") then
-            originalCollisions[part] = part.CanCollide
-            part.CanCollide = false
-        end
-    end
-    _G.NoclipActive = true
-end
-
-local function disableNoclip(car)
-    if not _G.NoclipActive or not car then return end
-    for part, original in pairs(originalCollisions) do
-        if part and part.Parent then
-            part.CanCollide = original
-        end
-    end
-    originalCollisions = {}
-    _G.NoclipActive = false
-end
-
-local function enableGodmode()
-    local char = PL.Character
-    if not char then return end
-    playerHumanoid = char:FindFirstChild("Humanoid")
-    if playerHumanoid then
-        originalGodMode = playerHumanoid.BreakJointsOnDeath
-        playerHumanoid.BreakJointsOnDeath = false
-        playerHumanoid.MaxHealth = math.huge
-        playerHumanoid.Health = math.huge
-        if not godmodeConnection then
-            godmodeConnection = playerHumanoid.HealthChanged:Connect(function()
-                if playerHumanoid and playerHumanoid.Health < playerHumanoid.MaxHealth then
-                    playerHumanoid.Health = playerHumanoid.MaxHealth
-                end
-            end)
-        end
-    end
-end
-
-local function disableGodmode()
-    if playerHumanoid then
-        playerHumanoid.BreakJointsOnDeath = originalGodMode
-        playerHumanoid.MaxHealth = 100
-        playerHumanoid.Health = 100
-        if godmodeConnection then
-            godmodeConnection:Disconnect()
-            godmodeConnection = nil
-        end
-        playerHumanoid = nil
-    end
-end
-
--- ==========================================
--- MOBIL & MOVEMENT (with anti‑detection randomness)
+-- LOGIKA FISIKA (ASLI V4.2 - NO SKIP)
 -- ==========================================
 local function getCar()
     return workspace.Vehicles:FindFirstChild(PL.Name .. "sCar")
@@ -118,18 +31,14 @@ local function applyForceMovement(car, targetPos, cpNumber)
 
     part.AssemblyLinearVelocity = Vector3.zero
     part.AssemblyAngularVelocity = Vector3.zero
-
-    -- Randomised hover height (±3)
-    local hover = _G.HoverHeight + (math.random() - 0.5) * 6
-    car:PivotTo(CFrame.new(car:GetPivot().Position.X, car:GetPivot().Position.Y + hover, car:GetPivot().Position.Z) * car:GetPivot().Rotation)
-    task.wait(0.1 + math.random() * 0.05) -- slight random delay
-
-    -- Random speed variation (±5%)
-    local currentSpeed = _G.MoveSpeed * (1 + (math.random() - 0.5) * 0.1)
+    
+    local currentPos = car:GetPivot().Position
+    car:PivotTo(CFrame.new(currentPos.X, currentPos.Y + _G.HoverHeight, currentPos.Z) * CFrame.Angles(0, math.rad(part.Orientation.Y), 0))
+    task.wait(0.1)
 
     local bv = Instance.new("BodyVelocity")
     bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge); bv.P = 5000 
-    bv.Velocity = (targetPos - car:GetPivot().Position).Unit * currentSpeed
+    bv.Velocity = (targetPos - car:GetPivot().Position).Unit * _G.MoveSpeed
     bv.Parent = part
 
     local bg = Instance.new("BodyGyro")
@@ -140,7 +49,7 @@ local function applyForceMovement(car, targetPos, cpNumber)
     hbConn = RS.Heartbeat:Connect(function()
         if not _G.IsTweening or not bv.Parent then hbConn:Disconnect() return end
         local goalWithHover = targetPos + Vector3.new(0, _G.HoverHeight, 0)
-        bv.Velocity = (goalWithHover - car:GetPivot().Position).Unit * currentSpeed
+        bv.Velocity = (goalWithHover - car:GetPivot().Position).Unit * _G.MoveSpeed
         bg.CFrame = CFrame.lookAt(car:GetPivot().Position, goalWithHover)
         part.AssemblyAngularVelocity = Vector3.zero
     end)
@@ -150,10 +59,10 @@ local function applyForceMovement(car, targetPos, cpNumber)
     if hbConn then hbConn:Disconnect() end
     if bv then bv:Destroy() end 
     if bg then bg:Destroy() end 
-
+    
     part.AssemblyLinearVelocity = Vector3.zero 
     task.wait(0.05) 
-
+    
     if _G.IsTweening then
         part.AssemblyLinearVelocity = Vector3.new(0, -250, 0) 
         local groundFound = false
@@ -164,41 +73,37 @@ local function applyForceMovement(car, targetPos, cpNumber)
         until groundFound or (tick() - t > 1.2)
         task.wait(0.4) 
         part.AssemblyLinearVelocity = Vector3.zero
-
-        -- Random micro‑pause between checkpoints (5‑35ms)
-        task.wait(math.random(5, 35) / 1000)
     end
 end
 
 -- ==========================================
--- TELEPORT (TWEEN + RANDOMISED)
+-- FUNGSI TELEPORT KARAKTER (DENGAN TWEEN)
 -- ==========================================
 local function playerTeleport(targetVector)
     local char = PL.Character
-    if not char then char = PL.CharacterAdded:Wait() end
+    if not char then
+        char = PL.CharacterAdded:Wait()
+    end
     local rootPart = char:FindFirstChild("HumanoidRootPart")
     if not rootPart then
-        rootPart = char:WaitForChild("HumanoidRootPart", 5)
+        rootPart = char:WaitForChild("HumanoidRootPart", 5) -- timeout 5 detik
         if not rootPart then
             Fluent:Notify({Title = "Error", Content = "HumanoidRootPart not found", Duration = 3})
             return
         end
     end
+    -- Tween langsung (gerakan halus)
     local targetPos = CFrame.new(targetVector + Vector3.new(0, 3, 0))
-    -- Random tween duration (0.6‑1.0 sec) and easing style to look less robotic
-    local duration = 0.8 + (math.random() - 0.5) * 0.4
-    local easingStyles = {Enum.EasingStyle.Quad, Enum.EasingStyle.Quart, Enum.EasingStyle.Sine}
-    local easingStyle = easingStyles[math.random(1, 3)]
-    local tweenInfo = TweenInfo.new(duration, easingStyle, Enum.EasingDirection.Out)
+    local tweenInfo = TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
     local tween = TS:Create(rootPart, tweenInfo, {CFrame = targetPos})
     tween:Play()
     tween.Completed:Wait()
-    task.wait(0.2)
+    task.wait(0.2) -- jeda singkat agar minimap stabil
     Fluent:Notify({Title = "Teleport Success", Content = "Karakter sampai!", Duration = 3})
 end
 
 -- ==========================================
--- CLEAN PATHWAY (unchanged)
+-- FUNGSI PEMBERSIH JALUR
 -- ==========================================
 local function cleanPathway()
     local targets = {
@@ -215,7 +120,7 @@ local function cleanPathway()
 end
 
 -- ==========================================
--- UI SETUP (unchanged)
+-- UI SETUP
 -- ==========================================
 local Window = Fluent:CreateWindow({
     Title = "CDID BYPASS PRO V4.6.1",
@@ -238,13 +143,15 @@ local Tabs = {
 Tabs.Main:AddSlider("MoveSpeed", {
     Title = "Speed Grinding",
     Default = 180, Min = 50, Max = 400, Rounding = 1,
-    Callback = function(v) _G.MoveSpeed = v end
+    Callback = function(Value) _G.MoveSpeed = Value end
 })
+
 Tabs.Main:AddToggle("AutoClean", {
     Title = "Auto Delete Obstacles", 
     Default = true,
-    Callback = function(v) _G.AutoClean = v end
+    Callback = function(Value) _G.AutoClean = Value end
 })
+
 Tabs.Main:AddButton({
     Title = "▶ START BYPASS",
     Callback = function()
@@ -255,93 +162,97 @@ Tabs.Main:AddButton({
             return 
         end
         _G.IsTweening = true
-        enableNoclip(car)
-        enableGodmode()
         if _G.AutoClean then cleanPathway() end
-
+        
         task.spawn(function()
             for i = 1, 38 do
                 if not _G.IsTweening then break end
                 local target = workspace.Etc.Race.Checkpoint:FindFirstChild(tostring(i))
                 if target then applyForceMovement(car, target:GetPivot().Position, i) end
             end
-            if _G.IsTweening then
-                applyForceMovement(car, Vector3.new(-3129.03, -64.56, -27743.27), "FINISH")
-            end
+            if _G.IsTweening then applyForceMovement(car, Vector3.new(-3129.03, -64.56, -27743.27), "FINISH") end
             _G.IsTweening = false
-            disableNoclip(car)
-            disableGodmode()
         end)
     end
 })
+
 Tabs.Main:AddButton({
     Title = "⏹ STOP BYPASS",
-    Callback = function()
-        if _G.IsTweening then
-            _G.IsTweening = false
-            local car = getCar()
-            if car then disableNoclip(car) end
-            disableGodmode()
-            Fluent:Notify({Title = "Stopped", Content = "Bypass dihentikan", Duration = 3})
-        end
-    end
+    Callback = function() _G.IsTweening = false end
 })
 
--- [ TAB AUTO RACE ] (unchanged)
+-- [ TAB AUTO RACE ]
 Tabs.AutoRace:AddInput("CarID", {
     Title = "Car ID (Avanza/GR86/dll)",
     Default = _G.AutoCarID,
-    Callback = function(v) _G.AutoCarID = v end
+    Callback = function(Value) _G.AutoCarID = Value end
 })
+
 Tabs.AutoRace:AddInput("CarName", {
     Title = "Car Full Name",
     Default = _G.AutoCarName,
-    Callback = function(v) _G.AutoCarName = v end
+    Callback = function(Value) _G.AutoCarName = Value end
 })
+
 Tabs.AutoRace:AddButton({
     Title = "HOST: Create and Ready",
     Callback = function()
         RR.CreateLobby:FireServer(PL.Name.."'s Lobby")
-        task.wait(1.5)
+        task.wait(1.5) 
         RR.SelectCar:FireServer(_G.AutoCarID, _G.AutoCarName)
         task.wait(0.8)
         RR.ToggleReady:FireServer()
         Fluent:Notify({Title = "Auto Race", Content = "Lobby Created & Ready!", Duration = 3})
     end
 })
+
 Tabs.AutoRace:AddButton({
     Title = "HOST: Start Race",
-    Callback = function()
-        RR.StartRace:FireServer()
+    Callback = function() 
+        RR.StartRace:FireServer() 
         Fluent:Notify({Title = "Auto Race", Content = "Race Started!", Duration = 2})
     end
 })
 
 -- ==========================================
--- [ AUTO JOIN LOBBY ] (unchanged)
+-- [ AUTO JOIN LOBBY - FINAL FIX ]
 -- ==========================================
-local availableLobbies = {}
+local availableLobbies = {}  -- array of {displayName = string, id = number}
 local selectedLobbyId = nil
 local lobbyDropdown = nil
 
+-- Fungsi untuk mengambil nama tampilan dari struktur lobby
 local function getLobbyDisplayName(lobbyObj)
-    if lobbyObj.name and type(lobbyObj.name) == "string" then return lobbyObj.name end
-    if lobbyObj.Name and type(lobbyObj.Name) == "string" then return lobbyObj.Name end
-    if lobbyObj.LobbyName and type(lobbyObj.LobbyName) == "string" then return lobbyObj.LobbyName end
-    if lobbyObj.id then return "Lobby " .. tostring(lobbyObj.id) end
+    if lobbyObj.name and type(lobbyObj.name) == "string" then
+        return lobbyObj.name
+    end
+    if lobbyObj.Name and type(lobbyObj.Name) == "string" then
+        return lobbyObj.Name
+    end
+    if lobbyObj.LobbyName and type(lobbyObj.LobbyName) == "string" then
+        return lobbyObj.LobbyName
+    end
+    -- fallback: gunakan id jika tidak ada nama
+    if lobbyObj.id then
+        return "Lobby " .. tostring(lobbyObj.id)
+    end
     return "Unknown Lobby"
 end
 
+-- Update dropdown dengan daftar lobby
 local function updateLobbyDropdown()
     if not lobbyDropdown then return end
     local items = {}
     for _, lobby in ipairs(availableLobbies) do
         table.insert(items, lobby.displayName)
     end
-    if #items == 0 then table.insert(items, "No lobbies found") end
+    if #items == 0 then
+        table.insert(items, "No lobbies found")
+    end
     lobbyDropdown:SetValues(items)
     if #items > 0 and items[1] ~= "No lobbies found" then
         lobbyDropdown:SetValue(items[1])
+        -- Set selectedLobbyId berdasarkan item pertama
         for _, lobby in ipairs(availableLobbies) do
             if lobby.displayName == items[1] then
                 selectedLobbyId = lobby.id
@@ -351,15 +262,22 @@ local function updateLobbyDropdown()
     end
 end
 
+-- Listener untuk update lobby dari server (jika ada event)
 if RR.LobbyListUpdated then
     RR.LobbyListUpdated.OnClientEvent:Connect(function(lobbyList)
         availableLobbies = {}
         if lobbyList then
             for _, lobby in ipairs(lobbyList) do
                 if lobby.id and lobby.name then
-                    table.insert(availableLobbies, {displayName = lobby.name, id = lobby.id})
+                    table.insert(availableLobbies, {
+                        displayName = lobby.name,
+                        id = lobby.id
+                    })
                 elseif lobby.id then
-                    table.insert(availableLobbies, {displayName = "Lobby " .. tostring(lobby.id), id = lobby.id})
+                    table.insert(availableLobbies, {
+                        displayName = "Lobby " .. tostring(lobby.id),
+                        id = lobby.id
+                    })
                 end
             end
         end
@@ -367,44 +285,67 @@ if RR.LobbyListUpdated then
     end)
 end
 
+-- Fungsi untuk meminta daftar lobby (menggunakan InvokeServer)
 local function refreshLobbyList()
     local getLobbies = RR.GetLobbies
     if getLobbies.ClassName == "RemoteFunction" then
-        local result = getLobbies:InvokeServer()
-        if result then
+        local success, result = pcall(function()
+            return getLobbies:InvokeServer()
+        end)
+        if success and result then
             availableLobbies = {}
             if type(result) == "table" then
+                -- iterasi sebagai array
                 for _, v in ipairs(result) do
                     if v.id and v.name then
-                        table.insert(availableLobbies, {displayName = v.name, id = v.id})
+                        table.insert(availableLobbies, {
+                            displayName = v.name,
+                            id = v.id
+                        })
                     elseif v.id then
-                        table.insert(availableLobbies, {displayName = "Lobby " .. tostring(v.id), id = v.id})
+                        table.insert(availableLobbies, {
+                            displayName = "Lobby " .. tostring(v.id),
+                            id = v.id
+                        })
                     end
                 end
+                -- jika tidak ada ipairs, mungkin result adalah dictionary
                 if #availableLobbies == 0 then
                     for _, v in pairs(result) do
                         if v.id and v.name then
-                            table.insert(availableLobbies, {displayName = v.name, id = v.id})
+                            table.insert(availableLobbies, {
+                                displayName = v.name,
+                                id = v.id
+                            })
                         elseif v.id then
-                            table.insert(availableLobbies, {displayName = "Lobby " .. tostring(v.id), id = v.id})
+                            table.insert(availableLobbies, {
+                                displayName = "Lobby " .. tostring(v.id),
+                                id = v.id
+                            })
                         end
                     end
                 end
             end
             updateLobbyDropdown()
             Fluent:Notify({Title = "Lobby List", Content = "Updated: " .. #availableLobbies .. " lobbies", Duration = 2})
+        else
+            Fluent:Notify({Title = "Error", Content = "Gagal mengambil lobby list", Duration = 3})
         end
     elseif getLobbies.ClassName == "RemoteEvent" then
         getLobbies:FireServer()
         Fluent:Notify({Title = "Lobby List", Content = "Request sent...", Duration = 2})
+    else
+        Fluent:Notify({Title = "Error", Content = "Unknown remote type: " .. getLobbies.ClassName, Duration = 3})
     end
 end
 
+-- Dropdown untuk memilih lobby
 lobbyDropdown = Tabs.AutoRace:AddDropdown("LobbySelector", {
     Title = "Available Lobbies",
     Values = {"Loading..."},
     Default = "Loading...",
     Callback = function(value)
+        -- cari id berdasarkan displayName yang dipilih
         for _, lobby in ipairs(availableLobbies) do
             if lobby.displayName == value then
                 selectedLobbyId = lobby.id
@@ -413,7 +354,14 @@ lobbyDropdown = Tabs.AutoRace:AddDropdown("LobbySelector", {
         end
     end
 })
-Tabs.AutoRace:AddButton({ Title = "Refresh Lobby List", Callback = refreshLobbyList })
+
+-- Tombol refresh lobby
+Tabs.AutoRace:AddButton({
+    Title = "Refresh Lobby List",
+    Callback = refreshLobbyList
+})
+
+-- Tombol join lobby yang dipilih
 Tabs.AutoRace:AddButton({
     Title = "Join Selected Lobby & Ready",
     Callback = function()
@@ -421,6 +369,7 @@ Tabs.AutoRace:AddButton({
             Fluent:Notify({Title = "Error", Content = "Pilih lobby terlebih dahulu!", Duration = 3})
             return
         end
+        -- Kirim ID lobby (number) ke server
         RR.JoinLobby:FireServer(selectedLobbyId)
         task.wait(1.5)
         RR.SelectCar:FireServer(_G.AutoCarID, _G.AutoCarName)
@@ -429,6 +378,8 @@ Tabs.AutoRace:AddButton({
         Fluent:Notify({Title = "Auto Race", Content = "Joined lobby (ID: " .. selectedLobbyId .. ")", Duration = 3})
     end
 })
+
+-- Tombol auto join lobby pertama yang tersedia
 Tabs.AutoRace:AddButton({
     Title = "Auto Join First Lobby & Ready",
     Callback = function()
@@ -447,13 +398,17 @@ Tabs.AutoRace:AddButton({
         end
     end
 })
+
+-- Panggil refresh pertama kali
 task.spawn(refreshLobbyList)
+-- ==========================================
 
 -- [ TAB TELEPORT ]
 Tabs.Teleport:AddButton({
     Title = "Character to DA0ZA",
     Callback = function() playerTeleport(Vector3.new(-7.83422661, 3.01886272, 441.855499)) end
 })
+
 Tabs.Teleport:AddButton({
     Title = "Character to SHAD",
     Callback = function() playerTeleport(Vector3.new(12.8298206, 3.23346472, 305.551514)) end
@@ -463,12 +418,13 @@ Tabs.Teleport:AddButton({
 Tabs.Settings:AddSlider("HoverHeight", {
     Title = "Hover Height",
     Default = 35, Min = 20, Max = 100, Rounding = 1,
-    Callback = function(v) _G.HoverHeight = v end
+    Callback = function(Value) _G.HoverHeight = Value end
 })
+
 Tabs.Settings:AddButton({
     Title = "Manual Clean Pathway",
     Callback = function() cleanPathway() end
 })
 
 Window:SelectTab(1)
-Fluent:Notify({Title = "V4.6.1 Loaded", Content = "Tween teleport + humanised movement | Anti‑Cheat safe", Duration = 5})
+Fluent:Notify({Title = "V4.6.1 Loaded", Content = "Auto Join Lobby Fixed, Teleport dengan Tween", Duration = 5})
