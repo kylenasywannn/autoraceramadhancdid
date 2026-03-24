@@ -1,6 +1,7 @@
 -- =========================================================================
 -- MODERN CDID SUMATERA BYPASS (STABLE UI V4.6.1 - PRO BUILD)
 -- Logika Fisika: V4.2 | UI: Fluent | Auto Join Lobby | Noclip+Godmode+AntiAFK
+-- Movement logic from base script (hover + landing)
 -- =========================================================================
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
@@ -48,7 +49,7 @@ antiAFK()
 local originalCollisions = {}
 local playerHumanoid = nil
 local originalGodMode = false
-local godmodeConnection = nil  -- menyimpan koneksi HealthChanged
+local godmodeConnection = nil
 
 local function enableNoclip(car)
     if _G.NoclipActive or not car then return end
@@ -106,13 +107,13 @@ local function disableGodmode()
 end
 
 -- ==========================================
--- MOBIL & MOVEMENT (Per checkpoint noclip toggle)
+-- MOBIL & MOVEMENT (refined logic from base script)
 -- ==========================================
 local function getCar()
     return workspace.Vehicles:FindFirstChild(PL.Name .. "sCar")
 end
 
-local function applyForceMovement(car, targetPos)
+local function applyForceMovement(car, targetPos, cpNumber)
     local part = car:FindFirstChild("DriveSeat") or car.PrimaryPart
     if not part then return end
 
@@ -124,58 +125,42 @@ local function applyForceMovement(car, targetPos)
     task.wait(0.1)
 
     local bv = Instance.new("BodyVelocity")
-    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    bv.P = 5000
+    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge); bv.P = 5000 
     bv.Velocity = (targetPos - car:GetPivot().Position).Unit * _G.MoveSpeed
     bv.Parent = part
 
     local bg = Instance.new("BodyGyro")
-    bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-    bg.P = 3000
-    bg.D = 500
-    bg.CFrame = car:GetPivot()
-    bg.Parent = part
+    bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge); bg.P = 3000; bg.D = 500
+    bg.CFrame = car:GetPivot(); bg.Parent = part
 
     local hbConn
     hbConn = RS.Heartbeat:Connect(function()
-        if not _G.IsTweening or not bv.Parent then
-            hbConn:Disconnect()
-            return
-        end
+        if not _G.IsTweening or not bv.Parent then hbConn:Disconnect() return end
         local goalWithHover = targetPos + Vector3.new(0, _G.HoverHeight, 0)
         bv.Velocity = (goalWithHover - car:GetPivot().Position).Unit * _G.MoveSpeed
         bg.CFrame = CFrame.lookAt(car:GetPivot().Position, goalWithHover)
         part.AssemblyAngularVelocity = Vector3.zero
     end)
 
-    repeat task.wait()
-    until (Vector2.new(car:GetPivot().Position.X, car:GetPivot().Position.Z) -
-           Vector2.new(targetPos.X, targetPos.Z)).Magnitude < 12 or not _G.IsTweening
+    repeat task.wait() until (Vector2.new(car:GetPivot().Position.X, car:GetPivot().Position.Z) - Vector2.new(targetPos.X, targetPos.Z)).Magnitude < 12 or not _G.IsTweening
 
     if hbConn then hbConn:Disconnect() end
-    if bv then bv:Destroy() end
-    if bg then bg:Destroy() end
+    if bv then bv:Destroy() end 
+    if bg then bg:Destroy() end 
 
-    part.AssemblyLinearVelocity = Vector3.zero
-    task.wait(0.05)
+    part.AssemblyLinearVelocity = Vector3.zero 
+    task.wait(0.05) 
 
     if _G.IsTweening then
-        -- Turun ke ketinggian checkpoint
-        local currentY = car:GetPivot().Position.Y
-        local targetY = targetPos.Y
-        if currentY > targetY then
-            part.AssemblyLinearVelocity = Vector3.new(0, -250, 0)
-            repeat task.wait()
-            until car:GetPivot().Position.Y <= targetY or not _G.IsTweening
-            part.AssemblyLinearVelocity = Vector3.zero
-            car:PivotTo(CFrame.new(car:GetPivot().Position.X, targetY, car:GetPivot().Position.Z) * car:GetPivot().Rotation)
-        end
-        task.wait(0.4)
-
-        -- Toggle noclip agar checkpoint terdeteksi
-        disableNoclip(car)
-        task.wait(0.1)
-        enableNoclip(car)
+        part.AssemblyLinearVelocity = Vector3.new(0, -250, 0) 
+        local groundFound = false
+        local t = tick()
+        repeat 
+            task.wait()
+            if math.abs(part.AssemblyLinearVelocity.Y) < 1 then groundFound = true end
+        until groundFound or (tick() - t > 1.2)
+        task.wait(0.4) 
+        part.AssemblyLinearVelocity = Vector3.zero
     end
 end
 
@@ -184,9 +169,7 @@ end
 -- ==========================================
 local function playerTeleport(targetVector)
     local char = PL.Character
-    if not char then
-        char = PL.CharacterAdded:Wait()
-    end
+    if not char then char = PL.CharacterAdded:Wait() end
     local rootPart = char:FindFirstChild("HumanoidRootPart")
     if not rootPart then
         rootPart = char:WaitForChild("HumanoidRootPart", 5)
@@ -267,10 +250,10 @@ Tabs.Main:AddButton({
             for i = 1, 38 do
                 if not _G.IsTweening then break end
                 local target = workspace.Etc.Race.Checkpoint:FindFirstChild(tostring(i))
-                if target then applyForceMovement(car, target:GetPivot().Position) end
+                if target then applyForceMovement(car, target:GetPivot().Position, i) end
             end
             if _G.IsTweening then
-                applyForceMovement(car, Vector3.new(-3129.03, -64.56, -27743.27))
+                applyForceMovement(car, Vector3.new(-3129.03, -64.56, -27743.27), "FINISH")
             end
             _G.IsTweening = false
             disableNoclip(car)
@@ -451,7 +434,6 @@ Tabs.AutoRace:AddButton({
         end
     end
 })
-
 task.spawn(refreshLobbyList)
 
 -- [ TAB TELEPORT ]
@@ -476,4 +458,4 @@ Tabs.Settings:AddButton({
 })
 
 Window:SelectTab(1)
-Fluent:Notify({Title = "V4.6.1 Loaded", Content = "Auto Join Lobby | Noclip toggle per checkpoint | Anti AFK Aktif", Duration = 5})
+Fluent:Notify({Title = "V4.6.1 Loaded", Content = "Auto Join Lobby | Noclip+Godmode+AntiAFK | Refined movement", Duration = 5})
