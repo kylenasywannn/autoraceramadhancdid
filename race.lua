@@ -187,7 +187,8 @@ local function playerTeleport(targetVector)
     local targetPos = CFrame.new(targetVector + Vector3.new(0, 3, 0))
     -- Random tween duration (0.6‑1.0 sec) and easing style to look less robotic
     local duration = 0.8 + (math.random() - 0.5) * 0.4
-    local easingStyle = {Enum.EasingStyle.Quad, Enum.EasingStyle.Quart, Enum.EasingStyle.Sine}[math.random(1,3)]
+    local easingStyles = {Enum.EasingStyle.Quad, Enum.EasingStyle.Quart, Enum.EasingStyle.Sine}
+    local easingStyle = easingStyles[math.random(1, 3)]
     local tweenInfo = TweenInfo.new(duration, easingStyle, Enum.EasingDirection.Out)
     local tween = TS:Create(rootPart, tweenInfo, {CFrame = targetPos})
     tween:Play()
