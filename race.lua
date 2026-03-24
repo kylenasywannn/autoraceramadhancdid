@@ -1,7 +1,6 @@
 -- =========================================================================
 -- MODERN CDID SUMATERA BYPASS (STABLE UI V4.6.1 - PRO BUILD)
--- Logika Fisika: V4.2 | UI: Fluent | Auto Join Lobby | Noclip+Godmode+AntiAFK
--- Movement logic from base script (hover + landing)
+-- Anti‑Cheat Safe | Tween Teleport + Humanised Movement
 -- =========================================================================
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
@@ -107,7 +106,7 @@ local function disableGodmode()
 end
 
 -- ==========================================
--- MOBIL & MOVEMENT (refined logic from base script)
+-- MOBIL & MOVEMENT (with anti‑detection randomness)
 -- ==========================================
 local function getCar()
     return workspace.Vehicles:FindFirstChild(PL.Name .. "sCar")
@@ -120,13 +119,17 @@ local function applyForceMovement(car, targetPos, cpNumber)
     part.AssemblyLinearVelocity = Vector3.zero
     part.AssemblyAngularVelocity = Vector3.zero
 
-    local currentPos = car:GetPivot().Position
-    car:PivotTo(CFrame.new(currentPos.X, currentPos.Y + _G.HoverHeight, currentPos.Z) * CFrame.Angles(0, math.rad(part.Orientation.Y), 0))
-    task.wait(0.1)
+    -- Randomised hover height (±3)
+    local hover = _G.HoverHeight + (math.random() - 0.5) * 6
+    car:PivotTo(CFrame.new(car:GetPivot().Position.X, car:GetPivot().Position.Y + hover, car:GetPivot().Position.Z) * car:GetPivot().Rotation)
+    task.wait(0.1 + math.random() * 0.05) -- slight random delay
+
+    -- Random speed variation (±5%)
+    local currentSpeed = _G.MoveSpeed * (1 + (math.random() - 0.5) * 0.1)
 
     local bv = Instance.new("BodyVelocity")
     bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge); bv.P = 5000 
-    bv.Velocity = (targetPos - car:GetPivot().Position).Unit * _G.MoveSpeed
+    bv.Velocity = (targetPos - car:GetPivot().Position).Unit * currentSpeed
     bv.Parent = part
 
     local bg = Instance.new("BodyGyro")
@@ -137,7 +140,7 @@ local function applyForceMovement(car, targetPos, cpNumber)
     hbConn = RS.Heartbeat:Connect(function()
         if not _G.IsTweening or not bv.Parent then hbConn:Disconnect() return end
         local goalWithHover = targetPos + Vector3.new(0, _G.HoverHeight, 0)
-        bv.Velocity = (goalWithHover - car:GetPivot().Position).Unit * _G.MoveSpeed
+        bv.Velocity = (goalWithHover - car:GetPivot().Position).Unit * currentSpeed
         bg.CFrame = CFrame.lookAt(car:GetPivot().Position, goalWithHover)
         part.AssemblyAngularVelocity = Vector3.zero
     end)
@@ -161,11 +164,14 @@ local function applyForceMovement(car, targetPos, cpNumber)
         until groundFound or (tick() - t > 1.2)
         task.wait(0.4) 
         part.AssemblyLinearVelocity = Vector3.zero
+
+        -- Random micro‑pause between checkpoints (5‑35ms)
+        task.wait(math.random(5, 35) / 1000)
     end
 end
 
 -- ==========================================
--- TELEPORT & CLEAN PATHWAY
+-- TELEPORT (TWEEN + RANDOMISED)
 -- ==========================================
 local function playerTeleport(targetVector)
     local char = PL.Character
@@ -179,7 +185,10 @@ local function playerTeleport(targetVector)
         end
     end
     local targetPos = CFrame.new(targetVector + Vector3.new(0, 3, 0))
-    local tweenInfo = TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+    -- Random tween duration (0.6‑1.0 sec) and easing style to look less robotic
+    local duration = 0.8 + (math.random() - 0.5) * 0.4
+    local easingStyle = {Enum.EasingStyle.Quad, Enum.EasingStyle.Quart, Enum.EasingStyle.Sine}[math.random(1,3)]
+    local tweenInfo = TweenInfo.new(duration, easingStyle, Enum.EasingDirection.Out)
     local tween = TS:Create(rootPart, tweenInfo, {CFrame = targetPos})
     tween:Play()
     tween.Completed:Wait()
@@ -187,6 +196,9 @@ local function playerTeleport(targetVector)
     Fluent:Notify({Title = "Teleport Success", Content = "Karakter sampai!", Duration = 3})
 end
 
+-- ==========================================
+-- CLEAN PATHWAY (unchanged)
+-- ==========================================
 local function cleanPathway()
     local targets = {
         workspace:FindFirstChild("NPCVehicle"),
@@ -202,7 +214,7 @@ local function cleanPathway()
 end
 
 -- ==========================================
--- UI SETUP
+-- UI SETUP (unchanged)
 -- ==========================================
 local Window = Fluent:CreateWindow({
     Title = "CDID BYPASS PRO V4.6.1",
@@ -274,7 +286,7 @@ Tabs.Main:AddButton({
     end
 })
 
--- [ TAB AUTO RACE ]
+-- [ TAB AUTO RACE ] (unchanged)
 Tabs.AutoRace:AddInput("CarID", {
     Title = "Car ID (Avanza/GR86/dll)",
     Default = _G.AutoCarID,
@@ -305,7 +317,7 @@ Tabs.AutoRace:AddButton({
 })
 
 -- ==========================================
--- [ AUTO JOIN LOBBY ]
+-- [ AUTO JOIN LOBBY ] (unchanged)
 -- ==========================================
 local availableLobbies = {}
 local selectedLobbyId = nil
@@ -458,4 +470,4 @@ Tabs.Settings:AddButton({
 })
 
 Window:SelectTab(1)
-Fluent:Notify({Title = "V4.6.1 Loaded", Content = "Auto Join Lobby | Noclip+Godmode+AntiAFK | Refined movement", Duration = 5})
+Fluent:Notify({Title = "V4.6.1 Loaded", Content = "Tween teleport + humanised movement | Anti‑Cheat safe", Duration = 5})
