@@ -1,6 +1,6 @@
 -- =========================================================================
 -- MODERN CDID SUMATERA BYPASS (STABLE UI V4.6.1 - PRO BUILD)
--- Logika Fisika: V4.2 | UI: Fluent | Auto Join Lobby (Fixed)
+-- Logika Fisika: V4.2 | UI: Fluent | Auto Join Lobby + Auto Leave + Checkpoint Teleport
 -- =========================================================================
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
@@ -32,10 +32,12 @@ local function applyForceMovement(car, targetPos, cpNumber)
     part.AssemblyLinearVelocity = Vector3.zero
     part.AssemblyAngularVelocity = Vector3.zero
     
+    -- Angkat mobil ke posisi hover di atas posisi saat ini (bukan target)
     local currentPos = car:GetPivot().Position
     car:PivotTo(CFrame.new(currentPos.X, currentPos.Y + _G.HoverHeight, currentPos.Z) * CFrame.Angles(0, math.rad(part.Orientation.Y), 0))
     task.wait(0.1)
 
+    -- Gerak horizontal menuju target + hover height
     local bv = Instance.new("BodyVelocity")
     bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge); bv.P = 5000 
     bv.Velocity = (targetPos - car:GetPivot().Position).Unit * _G.MoveSpeed
@@ -59,12 +61,12 @@ local function applyForceMovement(car, targetPos, cpNumber)
     if hbConn then hbConn:Disconnect() end
     if bv then bv:Destroy() end 
     if bg then bg:Destroy() end 
-    
+
     part.AssemblyLinearVelocity = Vector3.zero 
     task.wait(0.05) 
-    
+
     if _G.IsTweening then
-        -- Landing dengan kecepatan -340 dan jeda 0.1 detik
+        -- Landing dengan kecepatan vertikal -340
         part.AssemblyLinearVelocity = Vector3.new(0, -340, 0)
         local groundFound = false
         local t = tick()
@@ -74,6 +76,15 @@ local function applyForceMovement(car, targetPos, cpNumber)
         until groundFound or (tick() - t > 1.2)
         task.wait(0.1)
         part.AssemblyLinearVelocity = Vector3.zero
+
+        -- ==========================================
+        -- TELEPORT KE ATAS CHECKPOINT (untuk persiapan checkpoint berikutnya)
+        -- ==========================================
+        -- Pindahkan mobil ke posisi hover di atas checkpoint yang baru saja dicapai
+        car:PivotTo(CFrame.new(targetPos.X, targetPos.Y + _G.HoverHeight, targetPos.Z) * car:GetPivot().Rotation)
+        -- Reset kecepatan setelah teleport
+        part.AssemblyLinearVelocity = Vector3.zero
+        part.AssemblyAngularVelocity = Vector3.zero
     end
 end
 
@@ -190,7 +201,7 @@ Tabs.Main:AddButton({
     Callback = function() _G.IsTweening = false end
 })
 
--- [ TAB AUTO RACE ] - Input fields diganti menjadi paragraph (read-only)
+-- [ TAB AUTO RACE ] - Input fields menjadi read-only
 Tabs.AutoRace:AddParagraph({
     Title = "Car ID",
     Content = _G.AutoCarID
@@ -372,4 +383,4 @@ Tabs.Settings:AddButton({
 })
 
 Window:SelectTab(1)
-Fluent:Notify({Title = "V4.6.1 Loaded", Content = "Auto Join Lobby Fixed, Teleport dengan Tween", Duration = 5})
+Fluent:Notify({Title = "V4.6.1 Loaded", Content = "Auto Join Lobby | Auto Leave | Checkpoint Teleport", Duration = 5})
