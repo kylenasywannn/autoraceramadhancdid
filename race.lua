@@ -72,7 +72,7 @@ local function applyForceMovement(car, targetPos, cpNumber)
             task.wait()
             if math.abs(part.AssemblyLinearVelocity.Y) < 1 then groundFound = true end
         until groundFound or (tick() - t > 1.2)
-        task.wait(0.1)   -- <-- DIUBAH: 0.25 → 0.1
+        task.wait(0.1)
         part.AssemblyLinearVelocity = Vector3.zero
     end
 end
@@ -170,8 +170,18 @@ Tabs.Main:AddButton({
                 local target = workspace.Etc.Race.Checkpoint:FindFirstChild(tostring(i))
                 if target then applyForceMovement(car, target:GetPivot().Position, i) end
             end
-            if _G.IsTweening then applyForceMovement(car, Vector3.new(-3129.03, -64.56, -27743.27), "FINISH") end
+            -- Finish
+            if _G.IsTweening then
+                applyForceMovement(car, Vector3.new(-3129.03, -64.56, -27743.27), "FINISH")
+                task.wait(1) -- stabilisasi
+                -- Auto leave lobby setelah finish
+                pcall(function()
+                    RR.LeaveLobby:FireServer()
+                    Fluent:Notify({Title = "Auto Leave", Content = "Meninggalkan lobby setelah race", Duration = 2})
+                end)
+            end
             _G.IsTweening = false
+            Fluent:Notify({Title = "Race Finished", Content = "Bypass selesai. Klik START lagi untuk race ulang.", Duration = 3})
         end)
     end
 })
@@ -180,15 +190,14 @@ Tabs.Main:AddButton({
     Callback = function() _G.IsTweening = false end
 })
 
-Tabs.AutoRace:AddInput("CarID", {
-    Title = "Car ID (Avanza/GR86/dll)",
-    Default = _G.AutoCarID,
-    Callback = function(Value) _G.AutoCarID = Value end
+-- [ TAB AUTO RACE ] - Input fields diganti menjadi paragraph (read-only)
+Tabs.AutoRace:AddParagraph({
+    Title = "Car ID",
+    Content = _G.AutoCarID
 })
-Tabs.AutoRace:AddInput("CarName", {
+Tabs.AutoRace:AddParagraph({
     Title = "Car Full Name",
-    Default = _G.AutoCarName,
-    Callback = function(Value) _G.AutoCarName = Value end
+    Content = _G.AutoCarName
 })
 Tabs.AutoRace:AddButton({
     Title = "HOST: Create and Ready",
@@ -210,7 +219,7 @@ Tabs.AutoRace:AddButton({
 })
 
 -- ==========================================
--- AUTO JOIN LOBBY
+-- AUTO JOIN LOBBY (sama seperti sebelumnya)
 -- ==========================================
 local availableLobbies = {}
 local selectedLobbyId = nil
@@ -341,6 +350,7 @@ Tabs.AutoRace:AddButton({
 })
 task.spawn(refreshLobbyList)
 
+-- [ TAB TELEPORT ]
 Tabs.Teleport:AddButton({
     Title = "Character to DA0ZA",
     Callback = function() playerTeleport(Vector3.new(-7.83422661, 3.01886272, 441.855499)) end
@@ -350,6 +360,7 @@ Tabs.Teleport:AddButton({
     Callback = function() playerTeleport(Vector3.new(12.8298206, 3.23346472, 305.551514)) end
 })
 
+-- [ TAB SETTINGS ]
 Tabs.Settings:AddSlider("HoverHeight", {
     Title = "Hover Height",
     Default = 47, Min = 20, Max = 100, Rounding = 1,
