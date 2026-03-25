@@ -11,7 +11,7 @@ local TS = game:GetService("TweenService")
 local RR = game:GetService("ReplicatedStorage"):WaitForChild("RaceRemotes")
 
 -- [ VARIABEL GLOBAL ]
-_G.MoveSpeed = 160   -- default diubah ke 160
+_G.MoveSpeed = 160
 _G.HoverHeight = 35 
 _G.IsTweening = false
 _G.AutoClean = true
@@ -103,7 +103,7 @@ local function playerTeleport(targetVector)
 end
 
 -- ==========================================
--- FUNGSI PEMBERSIH JALUR (ditambah BillBoard Big)
+-- FUNGSI PEMBERSIH JALUR (ditambah BillBoard Big & Meshes/mountain smooth)
 -- ==========================================
 local function cleanPathway()
     local targets = {
@@ -118,6 +118,11 @@ local function cleanPathway()
     local billboard = workspace.Map:FindFirstChild("Roads & Infra") and workspace.Map["Roads & Infra"]:FindFirstChild("BillBoard Big")
     if billboard then
         table.insert(targets, billboard)
+    end
+    -- Tambahkan Meshes/mountain smooth
+    local mountainSmooth = workspace.Map:FindFirstChild("Roads & Infra") and workspace.Map["Roads & Infra"]:FindFirstChild("Meshes/mountain smooth")
+    if mountainSmooth then
+        table.insert(targets, mountainSmooth)
     end
     
     for _, folder in pairs(targets) do
@@ -148,7 +153,7 @@ local Tabs = {
 -- [ TAB MAIN ]
 Tabs.Main:AddSlider("MoveSpeed", {
     Title = "Speed Grinding",
-    Default = 160, Min = 50, Max = 400, Rounding = 1,  -- default 160
+    Default = 160, Min = 50, Max = 400, Rounding = 1,
     Callback = function(Value) _G.MoveSpeed = Value end
 })
 
