@@ -1,6 +1,6 @@
 -- =========================================================================
 -- MODERN CDID SUMATERA BYPASS (STABLE UI V4.6.1 - PRO BUILD)
--- Logika Fisika: V4.2 | UI: Fluent | Auto Join Lobby (Fixed) + Noclip + Godmode
+-- Logika Fisika: V4.2 | UI: Fluent | Auto Join Lobby (Fixed)
 -- =========================================================================
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
@@ -11,76 +11,12 @@ local TS = game:GetService("TweenService")
 local RR = game:GetService("ReplicatedStorage"):WaitForChild("RaceRemotes")
 
 -- [ VARIABEL GLOBAL ]
-_G.MoveSpeed = 160  -- default 160
+_G.MoveSpeed = 160   -- default diubah ke 160
 _G.HoverHeight = 35 
 _G.IsTweening = false
 _G.AutoClean = true
 _G.AutoCarID = "2021Avanza15CVT"
 _G.AutoCarName = "2021 Tokoma Avanza 1.5 CVT"
-_G.NoclipActive = false
-
--- ==========================================
--- NOCLIP & GODMODE
--- ==========================================
-local originalCollisions = {}
-local playerHumanoid = nil
-local originalGodMode = false
-local godmodeConnection = nil
-
-local function enableNoclip(car)
-    if _G.NoclipActive or not car then return end
-    originalCollisions = {}
-    for _, part in ipairs(car:GetDescendants()) do
-        if part:IsA("BasePart") then
-            originalCollisions[part] = part.CanCollide
-            part.CanCollide = false
-        end
-    end
-    _G.NoclipActive = true
-end
-
-local function disableNoclip(car)
-    if not _G.NoclipActive or not car then return end
-    for part, original in pairs(originalCollisions) do
-        if part and part.Parent then
-            part.CanCollide = original
-        end
-    end
-    originalCollisions = {}
-    _G.NoclipActive = false
-end
-
-local function enableGodmode()
-    local char = PL.Character
-    if not char then return end
-    playerHumanoid = char:FindFirstChild("Humanoid")
-    if playerHumanoid then
-        originalGodMode = playerHumanoid.BreakJointsOnDeath
-        playerHumanoid.BreakJointsOnDeath = false
-        playerHumanoid.MaxHealth = math.huge
-        playerHumanoid.Health = math.huge
-        if not godmodeConnection then
-            godmodeConnection = playerHumanoid.HealthChanged:Connect(function()
-                if playerHumanoid and playerHumanoid.Health < playerHumanoid.MaxHealth then
-                    playerHumanoid.Health = playerHumanoid.MaxHealth
-                end
-            end)
-        end
-    end
-end
-
-local function disableGodmode()
-    if playerHumanoid then
-        playerHumanoid.BreakJointsOnDeath = originalGodMode
-        playerHumanoid.MaxHealth = 100
-        playerHumanoid.Health = 100
-        if godmodeConnection then
-            godmodeConnection:Disconnect()
-            godmodeConnection = nil
-        end
-        playerHumanoid = nil
-    end
-end
 
 -- ==========================================
 -- LOGIKA FISIKA (ASLI V4.2 - NO SKIP)
@@ -128,12 +64,6 @@ local function applyForceMovement(car, targetPos, cpNumber)
     task.wait(0.05) 
     
     if _G.IsTweening then
-        -- Disable noclip when approaching checkpoint (10-20 studs)
-        local distanceToTarget = (car:GetPivot().Position - targetPos).Magnitude
-        if distanceToTarget <= 15 then  -- within 15 studs, disable noclip
-            disableNoclip(car)
-        end
-        
         part.AssemblyLinearVelocity = Vector3.new(0, -250, 0) 
         local groundFound = false
         local t = tick()
@@ -143,11 +73,6 @@ local function applyForceMovement(car, targetPos, cpNumber)
         until groundFound or (tick() - t > 1.2)
         task.wait(0.4) 
         part.AssemblyLinearVelocity = Vector3.zero
-        
-        -- Re-enable noclip after landing
-        if not _G.NoclipActive then
-            enableNoclip(car)
-        end
     end
 end
 
@@ -178,7 +103,7 @@ local function playerTeleport(targetVector)
 end
 
 -- ==========================================
--- FUNGSI PEMBERSIH JALUR (DITAMBAH "BillBoard Big")
+-- FUNGSI PEMBERSIH JALUR (ditambah BillBoard Big)
 -- ==========================================
 local function cleanPathway()
     local targets = {
@@ -243,11 +168,6 @@ Tabs.Main:AddButton({
             return 
         end
         _G.IsTweening = true
-        
-        -- Aktifkan noclip dan godmode
-        enableNoclip(car)
-        enableGodmode()
-        
         if _G.AutoClean then cleanPathway() end
         
         task.spawn(function()
@@ -258,25 +178,13 @@ Tabs.Main:AddButton({
             end
             if _G.IsTweening then applyForceMovement(car, Vector3.new(-3129.03, -64.56, -27743.27), "FINISH") end
             _G.IsTweening = false
-            
-            -- Matikan noclip dan godmode setelah selesai
-            disableNoclip(car)
-            disableGodmode()
         end)
     end
 })
 
 Tabs.Main:AddButton({
     Title = "⏹ STOP BYPASS",
-    Callback = function()
-        if _G.IsTweening then
-            _G.IsTweening = false
-            local car = getCar()
-            if car then disableNoclip(car) end
-            disableGodmode()
-            Fluent:Notify({Title = "Stopped", Content = "Bypass dihentikan", Duration = 3})
-        end
-    end
+    Callback = function() _G.IsTweening = false end
 })
 
 -- [ TAB AUTO RACE ]
@@ -525,4 +433,4 @@ Tabs.Settings:AddButton({
 })
 
 Window:SelectTab(1)
-Fluent:Notify({Title = "V4.6.1 Loaded", Content = "Auto Join Lobby Fixed, Teleport dengan Tween, Noclip+Godmode", Duration = 5})
+Fluent:Notify({Title = "V4.6.1 Loaded", Content = "Auto Join Lobby Fixed, Teleport dengan Tween", Duration = 5})
