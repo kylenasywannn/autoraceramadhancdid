@@ -1,6 +1,5 @@
 -- =========================================================================
--- MODERN CDID SUMATERA BYPASS (STABLE UI V4.6.1 - PRO BUILD)
--- Logika Fisika: V4.2 | UI: Fluent | Auto Join Lobby + Auto Leave + Checkpoint Teleport
+-- MODERN CDID SUMATERA BYPASS (STABLE UI V4.6.1 - PRO BUILD) - DEBUG
 -- =========================================================================
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
@@ -19,6 +18,14 @@ _G.AutoCarID = "2021Avanza15CVT"
 _G.AutoCarName = "2021 Tokoma Avanza 1.5 CVT"
 
 -- ==========================================
+-- DEBUG FUNCTION
+-- ==========================================
+local function debugPrint(msg)
+    print("[DEBUG] " .. msg)
+    Fluent:Notify({Title = "Debug", Content = msg, Duration = 1})
+end
+
+-- ==========================================
 -- LOGIKA FISIKA (ASLI V4.2 - NO SKIP)
 -- ==========================================
 local function getCar()
@@ -29,15 +36,15 @@ local function applyForceMovement(car, targetPos, cpNumber)
     local part = car:FindFirstChild("DriveSeat") or car.PrimaryPart
     if not part then return end
 
+    debugPrint("Checkpoint " .. tostring(cpNumber) .. " dimulai")
+
     part.AssemblyLinearVelocity = Vector3.zero
     part.AssemblyAngularVelocity = Vector3.zero
     
-    -- Angkat mobil ke posisi hover di atas posisi saat ini (bukan target)
     local currentPos = car:GetPivot().Position
     car:PivotTo(CFrame.new(currentPos.X, currentPos.Y + _G.HoverHeight, currentPos.Z) * CFrame.Angles(0, math.rad(part.Orientation.Y), 0))
     task.wait(0.1)
 
-    -- Gerak horizontal menuju target + hover height
     local bv = Instance.new("BodyVelocity")
     bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge); bv.P = 5000 
     bv.Velocity = (targetPos - car:GetPivot().Position).Unit * _G.MoveSpeed
@@ -66,7 +73,7 @@ local function applyForceMovement(car, targetPos, cpNumber)
     task.wait(0.05) 
 
     if _G.IsTweening then
-        -- Landing dengan kecepatan vertikal -340
+        debugPrint("Checkpoint " .. tostring(cpNumber) .. " landing...")
         part.AssemblyLinearVelocity = Vector3.new(0, -340, 0)
         local groundFound = false
         local t = tick()
@@ -77,12 +84,9 @@ local function applyForceMovement(car, targetPos, cpNumber)
         task.wait(0.1)
         part.AssemblyLinearVelocity = Vector3.zero
 
-        -- ==========================================
-        -- TELEPORT KE ATAS CHECKPOINT (untuk persiapan checkpoint berikutnya)
-        -- ==========================================
-        -- Pindahkan mobil ke posisi hover di atas checkpoint yang baru saja dicapai
+        -- Teleport ke atas checkpoint
+        debugPrint("Teleport ke atas checkpoint " .. tostring(cpNumber))
         car:PivotTo(CFrame.new(targetPos.X, targetPos.Y + _G.HoverHeight, targetPos.Z) * car:GetPivot().Rotation)
-        -- Reset kecepatan setelah teleport
         part.AssemblyLinearVelocity = Vector3.zero
         part.AssemblyAngularVelocity = Vector3.zero
     end
@@ -114,7 +118,7 @@ local function playerTeleport(targetVector)
 end
 
 -- ==========================================
--- FUNGSI PEMBERSIH JALUR (BillBoard Big & Meshes/mountain smooth)
+-- FUNGSI PEMBERSIH JALUR
 -- ==========================================
 local function cleanPathway()
     local targets = {
@@ -138,7 +142,7 @@ end
 -- UI SETUP
 -- ==========================================
 local Window = Fluent:CreateWindow({
-    Title = "CDID BYPASS PRO V4.6.1",
+    Title = "CDID BYPASS PRO V4.6.1 (Debug)",
     SubTitle = "Sumatera Dashboard",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 420),
@@ -175,33 +179,41 @@ Tabs.Main:AddButton({
         end
         _G.IsTweening = true
         if _G.AutoClean then cleanPathway() end
+        debugPrint("Bypass dimulai")
         task.spawn(function()
             for i = 1, 38 do
                 if not _G.IsTweening then break end
                 local target = workspace.Etc.Race.Checkpoint:FindFirstChild(tostring(i))
-                if target then applyForceMovement(car, target:GetPivot().Position, i) end
+                if target then 
+                    debugPrint("Menuju checkpoint " .. i)
+                    applyForceMovement(car, target:GetPivot().Position, i)
+                end
             end
             -- Finish
             if _G.IsTweening then
+                debugPrint("Finish")
                 applyForceMovement(car, Vector3.new(-3129.03, -64.56, -27743.27), "FINISH")
-                task.wait(1) -- stabilisasi
-                -- Auto leave lobby setelah finish
+                task.wait(1)
+                debugPrint("Auto leave lobby")
                 pcall(function()
                     RR.LeaveLobby:FireServer()
                     Fluent:Notify({Title = "Auto Leave", Content = "Meninggalkan lobby setelah race", Duration = 2})
                 end)
             end
             _G.IsTweening = false
-            Fluent:Notify({Title = "Race Finished", Content = "Bypass selesai. Klik START lagi untuk race ulang.", Duration = 3})
+            Fluent:Notify({Title = "Race Finished", Content = "Bypass selesai.", Duration = 3})
         end)
     end
 })
 Tabs.Main:AddButton({
     Title = "⏹ STOP BYPASS",
-    Callback = function() _G.IsTweening = false end
+    Callback = function() 
+        _G.IsTweening = false
+        debugPrint("Bypass dihentikan manual")
+    end
 })
 
--- [ TAB AUTO RACE ] - Input fields menjadi read-only
+-- [ TAB AUTO RACE ]
 Tabs.AutoRace:AddParagraph({
     Title = "Car ID",
     Content = _G.AutoCarID
@@ -230,7 +242,7 @@ Tabs.AutoRace:AddButton({
 })
 
 -- ==========================================
--- AUTO JOIN LOBBY (sama seperti sebelumnya)
+-- AUTO JOIN LOBBY (sama)
 -- ==========================================
 local availableLobbies = {}
 local selectedLobbyId = nil
@@ -383,4 +395,4 @@ Tabs.Settings:AddButton({
 })
 
 Window:SelectTab(1)
-Fluent:Notify({Title = "V4.6.1 Loaded", Content = "Auto Join Lobby | Auto Leave | Checkpoint Teleport", Duration = 5})
+Fluent:Notify({Title = "V4.6.1 Loaded", Content = "Debug mode active - lihat console", Duration = 5})
