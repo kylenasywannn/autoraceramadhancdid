@@ -1,5 +1,6 @@
 -- =========================================================================
--- MODERN CDID SUMATERA BYPASS (STABLE UI V4.6.1 - PRO BUILD) - DEBUG
+-- MODERN CDID SUMATERA BYPASS (STABLE UI V4.6.1 - PRO BUILD)
+-- Logika Fisika: V4.2 | UI: Fluent | Auto Join Lobby + Auto Leave + Force Stop
 -- =========================================================================
 
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
@@ -18,11 +19,21 @@ _G.AutoCarID = "2021Avanza15CVT"
 _G.AutoCarName = "2021 Tokoma Avanza 1.5 CVT"
 
 -- ==========================================
--- DEBUG FUNCTION
+-- UTILITY: Bersihkan semua force pada mobil
 -- ==========================================
-local function debugPrint(msg)
-    print("[DEBUG] " .. msg)
-    Fluent:Notify({Title = "Debug", Content = msg, Duration = 1})
+local function clearCarForces(car)
+    if not car then return end
+    for _, part in ipairs(car:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.AssemblyLinearVelocity = Vector3.zero
+            part.AssemblyAngularVelocity = Vector3.zero
+            for _, force in ipairs(part:GetChildren()) do
+                if force:IsA("BodyVelocity") or force:IsA("BodyGyro") then
+                    force:Destroy()
+                end
+            end
+        end
+    end
 end
 
 -- ==========================================
@@ -35,8 +46,6 @@ end
 local function applyForceMovement(car, targetPos, cpNumber)
     local part = car:FindFirstChild("DriveSeat") or car.PrimaryPart
     if not part then return end
-
-    debugPrint("Checkpoint " .. tostring(cpNumber) .. " dimulai")
 
     part.AssemblyLinearVelocity = Vector3.zero
     part.AssemblyAngularVelocity = Vector3.zero
@@ -73,7 +82,6 @@ local function applyForceMovement(car, targetPos, cpNumber)
     task.wait(0.05) 
 
     if _G.IsTweening then
-        debugPrint("Checkpoint " .. tostring(cpNumber) .. " landing...")
         part.AssemblyLinearVelocity = Vector3.new(0, -340, 0)
         local groundFound = false
         local t = tick()
@@ -85,7 +93,6 @@ local function applyForceMovement(car, targetPos, cpNumber)
         part.AssemblyLinearVelocity = Vector3.zero
 
         -- Teleport ke atas checkpoint
-        debugPrint("Teleport ke atas checkpoint " .. tostring(cpNumber))
         car:PivotTo(CFrame.new(targetPos.X, targetPos.Y + _G.HoverHeight, targetPos.Z) * car:GetPivot().Rotation)
         part.AssemblyLinearVelocity = Vector3.zero
         part.AssemblyAngularVelocity = Vector3.zero
@@ -118,7 +125,7 @@ local function playerTeleport(targetVector)
 end
 
 -- ==========================================
--- FUNGSI PEMBERSIH JALUR
+-- FUNGSI PEMBERSIH JALUR (BillBoard Big & Meshes/mountain smooth)
 -- ==========================================
 local function cleanPathway()
     local targets = {
@@ -142,7 +149,7 @@ end
 -- UI SETUP
 -- ==========================================
 local Window = Fluent:CreateWindow({
-    Title = "CDID BYPASS PRO V4.6.1 (Debug)",
+    Title = "CDID BYPASS PRO V4.6.1",
     SubTitle = "Sumatera Dashboard",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 420),
@@ -179,41 +186,44 @@ Tabs.Main:AddButton({
         end
         _G.IsTweening = true
         if _G.AutoClean then cleanPathway() end
-        debugPrint("Bypass dimulai")
         task.spawn(function()
             for i = 1, 38 do
                 if not _G.IsTweening then break end
                 local target = workspace.Etc.Race.Checkpoint:FindFirstChild(tostring(i))
-                if target then 
-                    debugPrint("Menuju checkpoint " .. i)
-                    applyForceMovement(car, target:GetPivot().Position, i)
-                end
+                if target then applyForceMovement(car, target:GetPivot().Position, i) end
             end
             -- Finish
             if _G.IsTweening then
-                debugPrint("Finish")
                 applyForceMovement(car, Vector3.new(-3129.03, -64.56, -27743.27), "FINISH")
                 task.wait(1)
-                debugPrint("Auto leave lobby")
-                pcall(function()
+                -- Auto leave lobby setelah finish
+                local success, err = pcall(function()
                     RR.LeaveLobby:FireServer()
-                    Fluent:Notify({Title = "Auto Leave", Content = "Meninggalkan lobby setelah race", Duration = 2})
                 end)
+                if success then
+                    Fluent:Notify({Title = "Auto Leave", Content = "Meninggalkan lobby", Duration = 2})
+                else
+                    Fluent:Notify({Title = "Auto Leave Error", Content = tostring(err), Duration = 3})
+                end
             end
             _G.IsTweening = false
-            Fluent:Notify({Title = "Race Finished", Content = "Bypass selesai.", Duration = 3})
+            Fluent:Notify({Title = "Race Finished", Content = "Bypass selesai. Klik START lagi untuk race ulang.", Duration = 3})
         end)
     end
 })
 Tabs.Main:AddButton({
     Title = "⏹ STOP BYPASS",
-    Callback = function() 
+    Callback = function()
         _G.IsTweening = false
-        debugPrint("Bypass dihentikan manual")
+        local car = getCar()
+        if car then
+            clearCarForces(car)
+        end
+        Fluent:Notify({Title = "Stopped", Content = "Bypass dihentikan, mobil dihentikan", Duration = 3})
     end
 })
 
--- [ TAB AUTO RACE ]
+-- [ TAB AUTO RACE ] - Input fields read-only
 Tabs.AutoRace:AddParagraph({
     Title = "Car ID",
     Content = _G.AutoCarID
@@ -242,7 +252,7 @@ Tabs.AutoRace:AddButton({
 })
 
 -- ==========================================
--- AUTO JOIN LOBBY (sama)
+-- AUTO JOIN LOBBY (sama seperti sebelumnya)
 -- ==========================================
 local availableLobbies = {}
 local selectedLobbyId = nil
@@ -395,4 +405,4 @@ Tabs.Settings:AddButton({
 })
 
 Window:SelectTab(1)
-Fluent:Notify({Title = "V4.6.1 Loaded", Content = "Debug mode active - lihat console", Duration = 5})
+Fluent:Notify({Title = "V4.6.1 Loaded", Content = "Auto Join Lobby | Auto Leave | Force Stop", Duration = 5})
