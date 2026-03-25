@@ -12,7 +12,7 @@ local RR = game:GetService("ReplicatedStorage"):WaitForChild("RaceRemotes")
 
 -- [ VARIABEL GLOBAL ]
 _G.MoveSpeed = 160
-_G.HoverHeight = 35 
+_G.HoverHeight = 45            -- <-- DIUBAH: 35 → 45
 _G.IsTweening = false
 _G.AutoClean = true
 _G.AutoCarID = "2021Avanza15CVT"
@@ -71,7 +71,7 @@ local function applyForceMovement(car, targetPos, cpNumber)
             task.wait()
             if math.abs(part.AssemblyLinearVelocity.Y) < 1 then groundFound = true end
         until groundFound or (tick() - t > 1.2)
-        task.wait(0.4) 
+        task.wait(0.3)   -- <-- DIUBAH: jeda setelah landing menjadi 0.3 detik
         part.AssemblyLinearVelocity = Vector3.zero
     end
 end
@@ -428,7 +428,7 @@ Tabs.Teleport:AddButton({
 -- [ TAB SETTINGS ]
 Tabs.Settings:AddSlider("HoverHeight", {
     Title = "Hover Height",
-    Default = 35, Min = 20, Max = 100, Rounding = 1,
+    Default = 45, Min = 20, Max = 100, Rounding = 1,  -- <-- DIUBAH: 35 → 45
     Callback = function(Value) _G.HoverHeight = Value end
 })
 
