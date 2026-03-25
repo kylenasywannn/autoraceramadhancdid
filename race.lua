@@ -64,15 +64,15 @@ local function applyForceMovement(car, targetPos, cpNumber)
     task.wait(0.05) 
     
     if _G.IsTweening then
-        -- Landing dengan kecepatan -340 dan jeda 0.25 detik
-        part.AssemblyLinearVelocity = Vector3.new(0, -340, 0)   -- <-- DIUBAH: -300 → -340
+        -- Landing dengan kecepatan -340 dan jeda 0.1 detik
+        part.AssemblyLinearVelocity = Vector3.new(0, -340, 0)
         local groundFound = false
         local t = tick()
         repeat 
             task.wait()
             if math.abs(part.AssemblyLinearVelocity.Y) < 1 then groundFound = true end
         until groundFound or (tick() - t > 1.2)
-        task.wait(0.25)
+        task.wait(0.1)   -- <-- DIUBAH: 0.25 → 0.1
         part.AssemblyLinearVelocity = Vector3.zero
     end
 end
